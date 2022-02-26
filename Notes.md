@@ -10,6 +10,12 @@ Java EE 作为一套技术规范，其商业实现产品有多种，单单国产
 Java Community Process是一个由oracle（曾经是sun）领导的，负责管理java和接受各种Java Specification Requests的
 组织，这个组织很多大厂（例如谷歌，IBM等）都加入了。   
 
-Java Specification Request是java的spec，在没有正式确定某版本之前会存在很多Java Specification Requests，
+Java Specification Request(JSR)是java的spec，在没有正式确定某版本之前会存在很多Java Specification Requests，
 最终JSR会由JCP的成员投票决定。例如：lambda在JSR335的相关讨论。
 
+Java EE 是由一系列抽象的标准规范所组成，是针对企业级软件开发中普遍面临问题的一套解决方案。Java EE 是将JSR文档以代码
+的形式展现出来。
+
+也就是说，Java EE = 多个JSR正式规范 + 运行环境。
+
+每个抽象的JSR规范都是要求有对应的参考实现的。
