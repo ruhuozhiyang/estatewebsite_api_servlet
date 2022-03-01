@@ -1,4 +1,4 @@
-## Java EE   
+### Java EE   
 Java EE是一种架构,也可以说是一种技术规范. Java EE 是由一系列抽象的标准规范所组成,
 是针对企业级软件开发中普遍面临问题的一套解决方案. Java EE 是将JSR文档以代码
 的形式展现出来 **(每个抽象的JSR规范都是要求有对应的参考实现的.)**.
@@ -20,7 +20,27 @@ Java Community Process是一个由oracle（曾经是sun）领导的,负责管理
 Java Specification Request(JSR)是java的spec,在没有正式确定某版本之前会存在很多Java Specification Requests,
 最终JSR会由JCP的成员投票决定. 例如: lambda在JSR335的相关讨论.
 
-## Web.xml
+### Web.xml
 如果 Web 应用不包含任何 servlet、过滤器、或监听器组件或使用注解声明相同的，那么可以不需要 web.xml 文件。
 换句话说，只包含静态文件或 JSP 页面的应用程序并不需要一个 web.xml 的存在。
 
+### service()方法
+实际上, 在执行doGet()或者doPost()之前,都会先执行service(). 由service()方法进行判断,
+到底该调用doGet()还是doPost();   
+service(), doGet(), doPost() 三种方式的参数列表都是一样的;   
+所以,有时候也会直接重写service()方法,在其中提供相应的服务,就不用区分到底是在doGet还是doPost中了。
+
+### JSP
+Servlet的一个比较明显的弊端就是在Servlet中编写html代码很痛苦,效率不高,可读性差,难以维护.   
+最好可以在.html文件里面写html代码,同时又能在里面调用java的变量,那也就是JSP了.
+
+为什么JSP可以在html中运行java代码? 因为JSP被转译成了Servlet.
+
+访问Tomcat中JSP页面的执行过程如下:
+1. 把 xx.jsp转译为xx_jsp.java;
+2. xx_jsp.java 位于tomcat\work\Catalina\localhost\web模块名\org\apache\jsp;
+3. xx_jsp.java是一个servlet; xx_jsp.java 被编译为 xx_jsp.class;
+4. 执行xx_jsp.class, 生成html;
+5. 通过http协议把html 响应返回给浏览器;
+
+xx_jsp.java 继承了类 org.apache.jasper.runtime.HttpJspBase, 而这个类又继承了HttpServlet.

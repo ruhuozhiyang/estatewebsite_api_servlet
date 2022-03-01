@@ -1,7 +1,13 @@
 package web;
 
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONObject;
+import dao.UserDAO;
+import entity.Message;
+import entity.User;
 import java.io.IOException;
-import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -11,13 +17,24 @@ public class UserLoginServlet extends HttpServlet{
   public void doPost(HttpServletRequest request, HttpServletResponse response){
 
     try {
-      String name = request.getParameter("email");
+      String email = request.getParameter("email");
       String password = request.getParameter("password");
-      System.out.println("name:" + name);
-      System.out.println("password:" + password);
 
-      response.getWriter().println("<h1>Hello Servlet1!</h1>");
-      response.getWriter().println(new Date());
+      response.setContentType("application/json; charset=UTF-8");
+      response.setDateHeader("Expires", 0);
+      response.setHeader("Cache-Control", "no-cache");
+      response.setHeader("pragma", "no-cache");
+
+      User user = new UserDAO().get(email);
+
+      Message msg = new Message();
+      msg.setInfo("操作成功");
+      msg.setData(user);
+      msg.setSuccess(true);
+
+      String result = JSON.toJSONString(msg);
+
+      response.getWriter().println(result);
     } catch (IOException e) {
       e.printStackTrace();
     }
