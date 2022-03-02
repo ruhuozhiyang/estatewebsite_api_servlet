@@ -1,13 +1,12 @@
 package web;
 
 import com.alibaba.fastjson.JSON;
-import com.alibaba.fastjson.JSONObject;
-import dao.UserDAO;
+import dao.Context;
+import dao.imple.UserDAO;
 import entity.Message;
 import entity.User;
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
+import javax.jws.soap.SOAPBinding.Use;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -25,11 +24,13 @@ public class UserLoginServlet extends HttpServlet{
       response.setHeader("Cache-Control", "no-cache");
       response.setHeader("pragma", "no-cache");
 
-      User user = new UserDAO().get(email);
+      User user = new User();
+      user.setEmail(email);
+      user.setPassword(password);
 
       Message msg = new Message();
       msg.setInfo("操作成功");
-      msg.setData(user);
+      msg.setData(new Context<>(user).login());
       msg.setSuccess(true);
 
       String result = JSON.toJSONString(msg);
