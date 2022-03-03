@@ -1,12 +1,10 @@
-package web;
+package servlet;
 
 import com.alibaba.fastjson.JSON;
 import dao.Context;
-import dao.imple.UserDAO;
 import entity.Message;
 import entity.User;
 import java.io.IOException;
-import javax.jws.soap.SOAPBinding.Use;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;

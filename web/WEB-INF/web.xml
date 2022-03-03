@@ -3,7 +3,7 @@
 
   <servlet>
     <servlet-name>UserLoginServlet</servlet-name>
-    <servlet-class>web.UserLoginServlet</servlet-class>
+    <servlet-class>servlet.UserLoginServlet</servlet-class>
   </servlet>
 
   <servlet-mapping>
