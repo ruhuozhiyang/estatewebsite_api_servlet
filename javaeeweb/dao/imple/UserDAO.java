@@ -41,7 +41,7 @@ public class UserDAO<T extends Person> implements DAO<T> {
     try {
       ps = connection.prepareStatement(sql);
       ps.setString(1, getFieldOrSuperValue(t, "user", 'c'));
-      ps.setString(2, getFieldOrSuperValue(t, "tel_number", 'c'));
+      ps.setString(2, getFieldOrSuperValue(t, "telNumber", 'c'));
       ps.setString(3, getFieldOrSuperValue(t, "email", 's'));
       ps.setString(4, getFieldOrSuperValue(t, "password", 's'));
       ps.execute();
@@ -77,7 +77,7 @@ public class UserDAO<T extends Person> implements DAO<T> {
       ps = connection.prepareStatement(sql);
       ps.setString(1, getFieldOrSuperValue(t, "user", 'c'));
       ps.setString(2, getFieldOrSuperValue(t, "email", 's'));
-      ps.setString(3, getFieldOrSuperValue(t, "tel_number", 'c'));
+      ps.setString(3, getFieldOrSuperValue(t, "telNumber", 'c'));
       ps.setString(4, getFieldOrSuperValue(t, "password", 's'));
       ps.execute();
       ps.close();
@@ -100,7 +100,6 @@ public class UserDAO<T extends Person> implements DAO<T> {
     String password = getFieldOrSuperValue(t, "password", 's');
     try (Statement s = connection.createStatement()) {
       String sql = "select * from user where email = " + "'" + email + "' and password = '" + password + "';";
-      System.out.println(sql);
       ResultSet rs = s.executeQuery(sql);
       if (rs.next()) {
         user = new User();

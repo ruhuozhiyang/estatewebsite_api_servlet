@@ -2,13 +2,21 @@
 <web-app>
 
   <servlet>
-    <servlet-name>UserLoginServlet</servlet-name>
-    <servlet-class>servlet.UserLoginServlet</servlet-class>
+    <servlet-name>LoginServlet</servlet-name>
+    <servlet-class>servlet.LoginServlet</servlet-class>
+  </servlet>
+  <servlet>
+    <servlet-name>RegisterServlet</servlet-name>
+    <servlet-class>servlet.RegisterServlet</servlet-class>
   </servlet>
 
   <servlet-mapping>
-    <servlet-name>UserLoginServlet</servlet-name>
+    <servlet-name>LoginServlet</servlet-name>
     <url-pattern>/api/user/login</url-pattern>
+  </servlet-mapping>
+  <servlet-mapping>
+    <servlet-name>RegisterServlet</servlet-name>
+    <url-pattern>/api/user/register</url-pattern>
   </servlet-mapping>
 
 </web-app>

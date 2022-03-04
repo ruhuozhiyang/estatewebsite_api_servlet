@@ -13,6 +13,10 @@ Java EE SDK则是java提供的用于开发企业级应用的开发工具包. 它
 
 企业级应用开发一般分为两个阵营: **1、使用Java EE开发; 2、使用Spring这种所谓的轻量级企业应用框架开发;**
 
+Servlet 是 J2EE 最重要的一部分，有了 Servlet 你就是 J2EE 了，J2EE 的其他方面的内容择需采用。
+而 Servlet 规范你需要掌握的就是 servlet 和 filter 这两项技术。绝大多数框架不是基于 servlet 就是基于 filter，
+**如果它要在 Servlet 容器上运行，就永远也脱离不开这个模型。**
+
 相关概念:  
 1、JCP 与 JSR.  
 Java Community Process是一个由oracle（曾经是sun）领导的,负责管理java和接受各种Java Specification Requests的

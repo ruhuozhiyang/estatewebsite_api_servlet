@@ -1,5 +1,6 @@
 package dao;
 
+import dao.imple.AdminDAO;
 import dao.imple.UserDAO;
 import entity.Person;
 import java.sql.Connection;
@@ -11,28 +12,31 @@ public class Context<T extends Person> {
   private Connection c = null;
   private T entity;
 
+  private static final String USER_CLASS = "entity.User";
+  private static final String ADMIN_CLASS = "entity.Admin";
+
   public Context(T t) {
     entity = t;
     try {
-      if (c != null) {
-        c = null;
+      if (c == null) {
+        c = new JDBC().getConnection();
       }
-      c = new JDBC().getConnection();
     } catch (SQLException e) {
       e.printStackTrace();
     }
-    dao = new UserDAO<>(c);
+    if (t.getClass().getName().equals(USER_CLASS)) {
+      dao = new UserDAO<>(c);
+    } else if (t.getClass().getName().equals(ADMIN_CLASS)) {
+      dao = new AdminDAO<>(c);
+    }
   }
 
   public T login() {
     return dao.isExist(entity);
   }
 
-  @Override
-  protected void finalize() throws Throwable {
-    super.finalize();
-    if (c != null) {
-      c.close();
-    }
+  public boolean register() {
+    return dao.add(entity);
   }
+
 }

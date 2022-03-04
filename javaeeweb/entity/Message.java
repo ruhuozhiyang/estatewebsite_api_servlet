@@ -1,7 +1,5 @@
 package entity;
 
-import com.alibaba.fastjson.JSON;
-
 public class Message {
 
   private String info;
