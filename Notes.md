@@ -48,3 +48,18 @@ Servlet的一个比较明显的弊端就是在Servlet中编写html代码很痛�
 5. 通过http协议把html 响应返回给浏览器;
 
 xx_jsp.java 继承了类 org.apache.jasper.runtime.HttpJspBase, 而这个类又继承了HttpServlet.
+
+
+### Byte code ｜ Machine code
+![图1](pics/机器码和字节码区别.png)
+
+### Class Loaders in Java.
+
+### Class Loaders in Tomcat.
+![图2](pics/类加载器.png)
+
+其中，位于图片中上方的三个类加载器(Bootstrap|Extension|Application ClassLoader)是 JVM 提供的。
+CommonClassLoader、CatalinaClassLoader 以及 ShareClassLoader，是Tomcat独有的，
+在BootStrap.java初始化操作中，进行类加载器初始化。
+
+Bootstrap Classloader是JVM 自身的一部分，主要加载的是JVM 自身需要的类，这个类加载器是使用C++语言实现的。

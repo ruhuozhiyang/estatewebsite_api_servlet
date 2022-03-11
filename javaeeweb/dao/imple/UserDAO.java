@@ -117,6 +117,7 @@ public class UserDAO<T extends Person> implements DAO<T> {
   private String getFieldOrSuperValue(T t, String field, char f) {
     String res = null;
     Class<? extends Person> userClass = t.getClass();
+    System.out.println("类加载器是:" + userClass.getClassLoader());
     Field[] fields = f == 's' ? userClass.getSuperclass().getDeclaredFields() : userClass.getDeclaredFields();
     for (int i = 0; i < fields.length; i++) {
       fields[i].setAccessible(true);
