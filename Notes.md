@@ -54,6 +54,9 @@ xx_jsp.java 继承了类 org.apache.jasper.runtime.HttpJspBase, 而这个类又�
 ![图1](pics/机器码和字节码区别.png)
 
 ### Class Loaders in Java.
+JVM搜索的是类，搜索路径由环境变量classpath决定，且有先后顺序。JVM只有类路径，而没有文件系统路径。
+而classpath环境变量正是为 JVM 提供搜索类路径的环境。注意，虚拟机不会递归搜索classpath定义的路径。
+![](pics/classpath1.png)
 
 ### Class Loaders in Tomcat.
 ![图2](pics/类加载器.png)
