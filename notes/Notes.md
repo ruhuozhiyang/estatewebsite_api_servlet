@@ -51,11 +51,7 @@ xx_jsp.java 继承了类 org.apache.jasper.runtime.HttpJspBase, 而这个类又�
 
 
 ## Byte code ｜ Machine code
-![图1](pics/机器码和字节码区别.png)
-
-## Class Loaders in Java.
-JVM搜索的是.Class, 同时, JVM中只有类路径classpath, 而没有文件系统路径。供JVM搜索的类路径由环境变量classpath决定，
-且有先后顺序。注意，虚拟机不会递归搜索classpath定义的路径。
+![图1](../pics/机器码和字节码区别.png)
 
 ## classpath | jar
 ### 1.classpath是什么？
@@ -76,13 +72,13 @@ Java是编译型语言，源码文件是.java，而编译后的.class文件才�
 没有设置系统环境变量，也没有传入-cp参数，那么JVM默认的classpath为.，即 ***当前目录***。
 
 ### 3.结合Intellij 编译器分析.
-![](pics/intellij%20执行java.png)
+![](../pics/intellij%20执行java.png)
 上图是编译器Intellij在执行test.java文件时候，终端Run显示的内容。可见，是执行命令语句。   
 执行命令总体的格式为: java -javaagent ... -classpath ... source_file;    
 这个属于是在JVM启动时，设置classpath变量的设定方法。
 
 我们来关注classpath的内容，其实，大部分classpath目录可以在intellij-Project structure中可见，见下图。
-![](pics/intellij_classpath.png)
+![](../pics/intellij_classpath.png)
 当指定本地JDK Home Path的时候，classpath的内容就同时确定了。
 ```
 我们注意到倒数四个classpath，这个是自定义的classpath目录，compile output path 和 额外添加的第三方依赖包的路径。
@@ -93,10 +89,10 @@ Java是编译型语言，源码文件是.java，而编译后的.class文件才�
 参数-classpath 指定或者说囊括所有需要的.class文件，然后在这些目录下搜索目标.class文件并执行。**
 
 ### 4.Tomcat中有关classpath.
-![图2](pics/classpath1.png)
+![图2](../pics/classpath1.png)
 上图为Tomcat源码的Shell脚本Catalina.sh中，在启动JVM时候额外添加的classpath。添加了两个jar包路径，
 分别为bootstrap.jar 和 tomcat-juli.jar。
-![img.png](pics/img.png)
+![img.png](../pics/img.png)
 上图为终端执行sh脚本启动tomcat时候，打印出来的日志记录，可以看见添加的classpath信息，与上文对应上了。
 
 ### 5.Jar包是什么？Jar包的作用？
@@ -121,8 +117,28 @@ jar包还可以包含其它jar包，这个时候，就需要在MANIFEST.MF文件
 在大型项目中，不可能手动编写MANIFEST.MF文件，再手动创建zip包。Java社区提供了大量的开源构建工具，例如Maven，
 可以非常方便地创建jar包。
 
+### 6.开发.java文件时导入其它类.
+在开发某个java源文件中，无法直接使用其他文件中的类，除非使用的目标类能被classpath的路径搜索到。
+要引用非classpath下的其他类，只能将其添加到classpath或者装入同一package中，然后引用包中的类。
+
+## Class Loaders in Java.
+![java_classloader](../pics/java_classloader.jpg)
+上图展示的是Java中的主要的四个类加载器，它们之间的组合关系，以及它们所对应的类加载路径。这几个类加载器在处理类加载请求
+的时候，采用的是图中所写双亲委派模式【Java 1.2之后引入的】。
+
+在Java的日常应用程序开发中，类的加载几乎是由前三个类加载器相互配合执行的，
+在必要时，我们还可以自定义类加载器。
+
+Java虚拟机对.class文件采用的是按需加载的方式，也就是说当需要使用该类时才会将它的class文件加载到内存生成class对象。
+
+而且加载某个类的class文件时，Java虚拟机采用的是双亲委派模式即把加载请求先交由父类处理，**也就是先看看父类加载器
+有没有该类，是否能完成加载任务，如果有，则不用自己加载，反之，自己再加载目标类。**
+
+JVM搜索的是.Class, JVM中只有类路径classpath, 而没有文件系统路径。供JVM搜索的类路径由环境变量classpath决定，
+且有先后顺序。注意，虚拟机不会递归搜索classpath定义的路径。
+
 ## Class Loaders in Tomcat.
-![图3](pics/类加载器.png)
+![图3](../pics/类加载器.png)
 
 其中，位于图片中上方的三个类加载器(Bootstrap|Extension|Application ClassLoader)是 JVM 提供的。
 CommonClassLoader、CatalinaClassLoader 以及 ShareClassLoader，是Tomcat独有的，
