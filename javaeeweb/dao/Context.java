@@ -6,6 +6,10 @@ import entity.Person;
 import java.sql.Connection;
 import java.sql.SQLException;
 
+/**
+ * 策略模式 环境类.
+ * @param <T> T.
+ */
 public class Context<T extends Person> {
 
   private DAO<T> dao;

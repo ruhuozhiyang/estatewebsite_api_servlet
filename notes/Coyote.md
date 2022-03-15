@@ -37,6 +37,9 @@ applications in tomcat through various ports.**
 The architecture of the Coyote component is shown in the pic above. It is mainly composed of three 
 sub-components including Endpoint, Processor and Adapter logically.
 
+![img.png](../pics/coyote_endpoint.png)
+![img.png](../pics/coyote_components_details.png)
+
 ### EndPoint
 It is an abstraction for the transport layer.
 
