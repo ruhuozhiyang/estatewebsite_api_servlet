@@ -3,6 +3,7 @@
   <component name="ProjectModuleManager">
     <modules>
       <module fileurl="file://$PROJECT_DIR$/.idea/estatewebsite_api_servlet.iml" filepath="$PROJECT_DIR$/.idea/estatewebsite_api_servlet.iml" />
+      <module fileurl="file://$PROJECT_DIR$/staticwebserver/staticwebserver.iml" filepath="$PROJECT_DIR$/staticwebserver/staticwebserver.iml" />
     </modules>
   </component>
 </project>

@@ -173,3 +173,42 @@ No!
 不能放在接口中去，接口只是对一类事物的属性和行为更高层次的抽象。
 
 对**修改**关闭，对扩展(不同的实现implements)开放，接口是对开闭原则的一种体现。
+
+## SYN Flood & SYN Cookies
+
+###1. What is SYN?
+SYN：同步序列编号（Synchronize Sequence Numbers）。
+
+###2. What is SYN Flood & SYN Cookies?
+
+####2.1 Intro.
+在以IPV4为支撑的网络协议上搭建的网络环境中，SYN Flood是一种常见的DDOS攻击，SYN Cookies是一种较为常见的防范SYN Flood
+攻击的手段。
+
+Linux系统内核中维护着两个队列的， syns queue和accept queue，见下图。syns queue用于保存半连接状态的请求，而accept 
+queue用于保存全连接状态的请求。
+
+![client_server_tcp](../pics/client_server_tcp.png)
+
+####2.2 What is SYN Flood ?
+SYN Flood是利用TCP三次握手协议的缺陷，通过发送大量的半连接请求，耗费服务器的CPU和内存资源。
+
+服务器接收到连接请求(syn= j)，将此信息加入**未连接队列**，并发送请求包给客户端(syn=k,ack=j+1)，此时连接进入**SYN_RECV状态**。
+当服务器未收到客户端的确认包时，重发请求包，一直到超时，才将此条目从未连接队列删除。配合IP欺骗, 客户端在短时间内伪造大量
+不存在的IP地址，向服务器不断地发送syn包，服务器回复确认包，并等待客户的确认，由于源地址是不存在的，服务器需要不断的重发
+直至超时，这些伪造的SYN包将长时间占用未连接队列，正常的SYN请求被丢弃，目标系统运行缓慢，严重者引起网络堵塞甚至系统瘫痪。
+
+####2.3 What is SYN Cookie ?
+之所以会有SYN Flood攻击，是因为受害者会为每个TCP的 SYN包分配一个特定的数据区，只要这些SYN包具有不同的源地址。
+
+SYN Cookie原理在不同系统上有不同的实现，其中在Linux内核中的实现较为常见。它的原理是，在TCP服务器收到TCP SYN包并返回
+TCP SYN+ACK包时，**不分配一个专门的数据区，而是根据这个SYN包计算出一个cookie值**。在收到TCP ACK包时，TCP服务器在根据那
+个cookie值**检查这个TCP ACK包的合法性**。如果合法，再分配专门的数据区进行处理未来的TCP连接。
+
+## backlog参数
+backlog参数主要用于底层方法int listen(int sockfd, int backlog)。
+
+上文我们知道，accept queue用于保存全连接状态的请求，其大小通过/proc/sys/net/core/somaxconn指定，
+在使用listen函数时，内核会根据传入的backlog参数与系统参数somaxconn，取二者的较小值。
+
+如果accept queue队列满了，server将发送一个ECONNREFUSED错误信息Connection refused到client。
