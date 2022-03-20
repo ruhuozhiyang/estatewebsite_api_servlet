@@ -1,6 +1,5 @@
 package main;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -9,15 +8,28 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.URL;
 import java.util.Optional;
+import main.middle.Socket2Uri;
+import main.middle.Uri2Socket;
+import main.requesthandleimple.DynamicResourceHandle;
+import main.requesthandleimple.StaticResourceHandle;
 
 public class HttpServer {
 
-  public static final String WEB_PROJECT_ROOT;
+  public static final String PAGES_PATH;
+  public static final String SERVLETS_PATH;
+
+  private RequestHandle rh;
 
   static{
-    URL webrootURL = HttpServer.class.getClassLoader().getResource("pages");
-    WEB_PROJECT_ROOT = Optional.ofNullable(webrootURL)
+    // pages文件夹放在resources目录下，resources目录是不用编译的。
+    URL pagesURL = HttpServer.class.getClassLoader().getResource("pages");
+    PAGES_PATH = Optional.ofNullable(pagesURL)
         .orElseThrow(() -> new IllegalStateException("can't not find resource."))
+        .getFile();
+
+    URL servletURL = HttpServer.class.getClassLoader().getResource("");
+    SERVLETS_PATH = Optional.ofNullable(servletURL)
+        .orElseThrow(() -> new IllegalStateException("can't not find servlets content."))
         .getFile();
   }
 
@@ -38,21 +50,19 @@ public class HttpServer {
           InputStream inputStream = accept.getInputStream();
           OutputStream outputStream = accept.getOutputStream()) {
         //解析用户的请求
-        Socket2Uri request = new Socket2Uri();
-        request.setInputStream(inputStream);
-        request.parseSocket();
+        Socket2Uri request = new Socket2Uri(inputStream);
+        Uri2Socket response = new Uri2Socket(outputStream);
 
-        Uri2Socket uri2Socket = new Uri2Socket(outputStream, request);
-        uri2Socket.handleRequest();
+        if (Optional.ofNullable(Socket2Uri.Uri).orElse("").startsWith("/servlet/")) {
+          rh = new DynamicResourceHandle();
+        } else {
+          rh = new StaticResourceHandle();
+        }
+        rh.process(request, response);
       } catch (IOException e) {
         e.printStackTrace();
       }
     }
-    //关闭服务器
-//    try {
-//      serverSocket.close();
-//    } catch (IOException e) {
-//      e.printStackTrace();
-//    }
   }
+
 }
