@@ -46,6 +46,188 @@ It is an abstraction for the transport layer.
 Logically, the EndPoint component is responsible for monitoring the communication port, receiving the 
 socket data and sending it to the processor.
 
+As shown in source codes, the abstract class called AbstractEndpoint encapsulates some common attributes 
+or functions of the specific classes. We noticed the member acceptor, which is the thread used to accept
+new connections and pass them to worker threads.
+```java
+public abstract class AbstractEndpoint {
+  /**
+   * External Executor based thread pool.
+   */
+  private Executor executor = null;
+  /**
+   * Thread used to accept new connections and pass them to worker threads.
+   */
+  protected Acceptor<U> acceptor;
+
+  public void createExecutor() {
+    internalExecutor = true;
+    TaskQueue taskqueue = new TaskQueue();
+    TaskThreadFactory tf = new TaskThreadFactory(getName() + "-exec-", daemon, getThreadPriority());
+    executor = new ThreadPoolExecutor(getMinSpareThreads(), getMaxThreads(), 60, TimeUnit.SECONDS,taskqueue, tf);
+    taskqueue.setParent( (ThreadPoolExecutor) executor);
+  }
+}
+```
+
+The Acceptor class implements the runnable interface and override the run function.
+```java
+class Acceptor implements Runnable {
+  public enum AcceptorState {
+    NEW, RUNNING, PAUSED, ENDED
+  }
+  
+  protected volatile AcceptorState state = AcceptorState.NEW;
+  
+  @Override
+  public void run() {
+
+    int errorDelay = 0;
+    long pauseStart = 0;
+
+    try {
+      // Loop until we receive a shutdown command
+      while (!stopCalled) {
+
+        // Loop if endpoint is paused.
+        // There are two likely scenarios here.
+        // The first scenario is that Tomcat is shutting down. In this
+        // case - and particularly for the unit tests - we want to exit
+        // this loop as quickly as possible. The second scenario is a
+        // genuine pause of the connector. In this case we want to avoid
+        // excessive CPU usage.
+        // Therefore, we start with a tight loop but if there isn't a
+        // rapid transition to stop then sleeps are introduced.
+        // < 1ms       - tight loop
+        // 1ms to 10ms - 1ms sleep
+        // > 10ms      - 10ms sleep
+        while (endpoint.isPaused() && !stopCalled) {
+          if (state != AcceptorState.PAUSED) {
+            pauseStart = System.nanoTime();
+            // Entered pause state
+            state = AcceptorState.PAUSED;
+          }
+          if ((System.nanoTime() - pauseStart) > 1_000_000) {
+            // Paused for more than 1ms
+            try {
+              if ((System.nanoTime() - pauseStart) > 10_000_000) {
+                Thread.sleep(10);
+              } else {
+                Thread.sleep(1);
+              }
+            } catch (InterruptedException e) {
+              // Ignore
+            }
+          }
+        }
+
+        if (stopCalled) {
+          break;
+        }
+        state = AcceptorState.RUNNING;
+
+        try {
+          //if we have reached max connections, wait
+          endpoint.countUpOrAwaitConnection();
+
+          // Endpoint might have been paused while waiting for latch
+          // If that is the case, don't accept new connections
+          if (endpoint.isPaused()) {
+            continue;
+          }
+
+          U socket = null;
+          try {
+            // Accept the next incoming connection from the server
+            // socket
+            socket = endpoint.serverSocketAccept();
+          } catch (Exception ioe) {
+            // We didn't get a socket
+            endpoint.countDownConnection();
+            if (endpoint.isRunning()) {
+              // Introduce delay if necessary
+              errorDelay = handleExceptionWithDelay(errorDelay);
+              // re-throw
+              throw ioe;
+            } else {
+              break;
+            }
+          }
+          // Successful accept, reset the error delay
+          errorDelay = 0;
+
+          // Configure the socket
+          if (!stopCalled && !endpoint.isPaused()) {
+            // setSocketOptions() will hand the socket off to
+            // an appropriate processor if successful
+            if (!endpoint.setSocketOptions(socket)) {
+              endpoint.closeSocket(socket);
+            }
+          } else {
+            endpoint.destroySocket(socket);
+          }
+        } catch (Throwable t) {
+          ExceptionUtils.handleThrowable(t);
+          String msg = sm.getString("endpoint.accept.fail");
+          // APR specific.
+          // Could push this down but not sure it is worth the trouble.
+          if (t instanceof Error) {
+            Error e = (Error) t;
+            if (e.getError() == 233) {
+              // Not an error on HP-UX so log as a warning
+              // so it can be filtered out on that platform
+              // See bug 50273
+              log.warn(msg, t);
+            } else {
+              log.error(msg, t);
+            }
+          } else {
+            log.error(msg, t);
+          }
+        }
+      }
+    } finally {
+      stopLatch.countDown();
+    }
+    state = AcceptorState.ENDED;
+  }
+}
+```
+The NioEndPoint class extends the abstract class AbstractEndPoint and implements the function startInternal.
+```java
+class NioEndPoint {
+  /**
+   * Start the NIO endpoint, creating acceptor, poller threads.
+   */
+  @Override
+  public void startInternal() throws Exception {
+
+    if (!running) {
+      running = true;
+      /**
+       * ...
+       */
+      
+      // Create worker collection
+      if (getExecutor() == null) {
+        createExecutor();
+      }
+
+      initializeConnectionLatch();
+
+      // Start poller thread
+      poller = new Poller();
+      Thread pollerThread = new Thread(poller, getName() + "-Poller");
+      pollerThread.setPriority(threadPriority);
+      pollerThread.setDaemon(true);
+      pollerThread.start();
+
+      startAcceptorThread();
+    }
+  }
+}
+```
+
 ### Processor
 It is an abstraction for the application layer.
 

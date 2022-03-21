@@ -45,6 +45,10 @@ public class HttpServer {
       throw new RuntimeException(e);
     }
 
+    /**
+     * the body of the while expression has several creating objects operation,
+     * which will consume much more memory space with the client emitting more socket requests.
+     */
     while (true) {
       try (Socket accept = serverSocket.accept();
           InputStream inputStream = accept.getInputStream();

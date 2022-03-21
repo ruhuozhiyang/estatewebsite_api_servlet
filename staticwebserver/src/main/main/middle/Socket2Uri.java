@@ -22,6 +22,7 @@ public class Socket2Uri implements ServletRequest {
   public static String Uri;
 
   public Socket2Uri(InputStream inputStream) {
+    System.out.println("+1");
     this.inputStream = inputStream;
     try {
       parseSocket();

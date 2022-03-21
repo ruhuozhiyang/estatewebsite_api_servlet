@@ -19,6 +19,7 @@ public class Uri2Socket implements ServletResponse {
   private OutputStream outputStream;
 
   public Uri2Socket(OutputStream outputStream) {
+    System.out.println("+1");
     this.outputStream = outputStream;
   }
 

@@ -21,7 +21,6 @@ public class DynamicResourceHandle implements RequestHandle {
   static {
     try {
       URL servletClassPath = new File(HttpServer.SERVLETS_PATH).toURI().toURL();
-      System.out.println(servletClassPath);
       URL_CLASS_LOADER = new URLClassLoader(new URL[]{servletClassPath});
     } catch (Exception e) {
       throw new RuntimeException(e);
@@ -41,7 +40,6 @@ public class DynamicResourceHandle implements RequestHandle {
     try {
       Servlet servlet = (Servlet) servletClass.newInstance();
       Method m = sr2.getClass().getMethod("responseToByte", HttpStatus.class);
-      System.out.println(m);
       sr2.getWriter().println(new String((byte[]) m.invoke(sr2, HttpStatus.OK)));
       servlet.service(new RequestFacade(sr1), new ResponseFacade(sr2));
     } catch (Exception e) {
