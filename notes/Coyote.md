@@ -10,6 +10,8 @@ request protocol and I/O operation mode.
 
 ![img.png](../pics/catalina_coyote.png)
 
+![tomcat_connector](../pics/tomcat-connector.png)
+
 The pic above shows the interaction process between catalina and coyote. The coyote, as an isolated 
 module, is only responsible for resolving the related specific communication protocol and I/O mode.
 It is not related to the implementation of the Servlet specification.
@@ -47,8 +49,8 @@ Logically, the EndPoint component is responsible for monitoring the communicatio
 socket data and sending it to the processor.
 
 As shown in source codes, the abstract class called AbstractEndpoint encapsulates some common attributes 
-or functions of the specific classes. We noticed the member acceptor, which is the thread used to accept
-new connections and pass them to worker threads.
+or functions of the specific classes. We noticed the member executor and acceptor, and the latter is 
+the thread used to accept new connections and pass them to worker threads.
 ```java
 public abstract class AbstractEndpoint {
   /**
@@ -70,132 +72,17 @@ public abstract class AbstractEndpoint {
 }
 ```
 
-The Acceptor class implements the runnable interface and override the run function.
-```java
-class Acceptor implements Runnable {
-  public enum AcceptorState {
-    NEW, RUNNING, PAUSED, ENDED
-  }
-  
-  protected volatile AcceptorState state = AcceptorState.NEW;
-  
-  @Override
-  public void run() {
-
-    int errorDelay = 0;
-    long pauseStart = 0;
-
-    try {
-      // Loop until we receive a shutdown command
-      while (!stopCalled) {
-
-        // Loop if endpoint is paused.
-        // There are two likely scenarios here.
-        // The first scenario is that Tomcat is shutting down. In this
-        // case - and particularly for the unit tests - we want to exit
-        // this loop as quickly as possible. The second scenario is a
-        // genuine pause of the connector. In this case we want to avoid
-        // excessive CPU usage.
-        // Therefore, we start with a tight loop but if there isn't a
-        // rapid transition to stop then sleeps are introduced.
-        // < 1ms       - tight loop
-        // 1ms to 10ms - 1ms sleep
-        // > 10ms      - 10ms sleep
-        while (endpoint.isPaused() && !stopCalled) {
-          if (state != AcceptorState.PAUSED) {
-            pauseStart = System.nanoTime();
-            // Entered pause state
-            state = AcceptorState.PAUSED;
-          }
-          if ((System.nanoTime() - pauseStart) > 1_000_000) {
-            // Paused for more than 1ms
-            try {
-              if ((System.nanoTime() - pauseStart) > 10_000_000) {
-                Thread.sleep(10);
-              } else {
-                Thread.sleep(1);
-              }
-            } catch (InterruptedException e) {
-              // Ignore
-            }
-          }
-        }
-
-        if (stopCalled) {
-          break;
-        }
-        state = AcceptorState.RUNNING;
-
-        try {
-          //if we have reached max connections, wait
-          endpoint.countUpOrAwaitConnection();
-
-          // Endpoint might have been paused while waiting for latch
-          // If that is the case, don't accept new connections
-          if (endpoint.isPaused()) {
-            continue;
-          }
-
-          U socket = null;
-          try {
-            // Accept the next incoming connection from the server
-            // socket
-            socket = endpoint.serverSocketAccept();
-          } catch (Exception ioe) {
-            // We didn't get a socket
-            endpoint.countDownConnection();
-            if (endpoint.isRunning()) {
-              // Introduce delay if necessary
-              errorDelay = handleExceptionWithDelay(errorDelay);
-              // re-throw
-              throw ioe;
-            } else {
-              break;
-            }
-          }
-          // Successful accept, reset the error delay
-          errorDelay = 0;
-
-          // Configure the socket
-          if (!stopCalled && !endpoint.isPaused()) {
-            // setSocketOptions() will hand the socket off to
-            // an appropriate processor if successful
-            if (!endpoint.setSocketOptions(socket)) {
-              endpoint.closeSocket(socket);
-            }
-          } else {
-            endpoint.destroySocket(socket);
-          }
-        } catch (Throwable t) {
-          ExceptionUtils.handleThrowable(t);
-          String msg = sm.getString("endpoint.accept.fail");
-          // APR specific.
-          // Could push this down but not sure it is worth the trouble.
-          if (t instanceof Error) {
-            Error e = (Error) t;
-            if (e.getError() == 233) {
-              // Not an error on HP-UX so log as a warning
-              // so it can be filtered out on that platform
-              // See bug 50273
-              log.warn(msg, t);
-            } else {
-              log.error(msg, t);
-            }
-          } else {
-            log.error(msg, t);
-          }
-        }
-      }
-    } finally {
-      stopLatch.countDown();
-    }
-    state = AcceptorState.ENDED;
-  }
-}
-```
 The NioEndPoint class extends the abstract class AbstractEndPoint and implements the function startInternal.
 ```java
 class NioEndPoint {
+
+  private Poller poller = null;
+
+  /**
+   * Bytebuffer cache, each channel holds a set of buffers (two, except for SSL holds four)
+   */
+  private SynchronizedStack<NioChannel> nioChannels;
+  
   /**
    * Start the NIO endpoint, creating acceptor, poller threads.
    */
@@ -225,8 +112,123 @@ class NioEndPoint {
       startAcceptorThread();
     }
   }
+
+  /**
+   * Process the specified connection.
+   * @param socket The socket channel
+   * @return <code>true</code> if the socket was correctly configured
+   *  and processing may continue, <code>false</code> if the socket needs to be
+   *  close immediately
+   */
+  @Override
+  protected boolean setSocketOptions(SocketChannel socket) {
+    NioSocketWrapper socketWrapper = null;
+    
+    try {
+      // Allocate channel and wrapper
+      NioChannel channel = null;
+      if (nioChannels != null) {
+        channel = nioChannels.pop();
+      }
+      if (channel == null) {
+        SocketBufferHandler bufhandler = new SocketBufferHandler(
+            socketProperties.getAppReadBufSize(),
+            socketProperties.getAppWriteBufSize(),
+            socketProperties.getDirectBuffer());
+        if (isSSLEnabled()) {
+          channel = new SecureNioChannel(bufhandler, this);
+        } else {
+          channel = new NioChannel(bufhandler);
+        }
+      }
+      NioSocketWrapper newWrapper = new NioSocketWrapper(channel, this);
+      channel.reset(socket, newWrapper);
+      connections.put(socket, newWrapper);
+      socketWrapper = newWrapper;
+      // ...
+      poller.register(socketWrapper);
+      return true;
+    } catch (Throwable t) {
+      
+    }
+  }
+  
+  public class Poller implements Runnable {
+    /**
+     * Registers a newly created socket with the poller.
+     *
+     * @param socketWrapper The socket wrapper
+     */
+    public void register(final NioSocketWrapper socketWrapper) {
+      socketWrapper.interestOps(SelectionKey.OP_READ);//this is what OP_REGISTER turns into.
+      PollerEvent event = null;
+      if (eventCache != null) {
+        event = eventCache.pop();
+      }
+      if (event == null) {
+        event = new PollerEvent(socketWrapper, OP_REGISTER);
+      } else {
+        event.reset(socketWrapper, OP_REGISTER);
+      }
+      addEvent(event);
+    }
+  }
 }
 ```
+
+The Acceptor class implements the runnable interface and override the run function. The run function
+is important as it describes the process of receiving a request from the client.
+```java
+class Acceptor implements Runnable {
+  @Override
+  public void run() {
+    try {
+      // Loop until we receive a shutdown command
+      while (!stopCalled) {
+        try {
+          //if we have reached max connections, wait
+          endpoint.countUpOrAwaitConnection();
+
+          // Endpoint might have been paused while waiting for latch
+          // If that is the case, don't accept new connections
+          if (endpoint.isPaused()) {
+            continue;
+          }
+
+          U socket = null;
+          try {
+            // Accept the next incoming connection from the server
+            // socket
+            socket = endpoint.serverSocketAccept();
+          } catch (Exception ioe) {
+
+          }
+          // Successful accept, reset the error delay
+          errorDelay = 0;
+
+          // Configure the socket
+          if (!stopCalled && !endpoint.isPaused()) {
+            // setSocketOptions() will hand the socket off to
+            // an appropriate processor if successful
+            if (!endpoint.setSocketOptions(socket)) {
+              endpoint.closeSocket(socket);
+            }
+          } else { }
+        } catch (Throwable t) { }
+      }
+    } finally {}
+  }
+}
+```
+
+socketWrapper is the instance of NioSocketWrapper class, and is registered to the poller instance 
+by invoking the register function for executors handling further.
+
+&
+
+every poller instance has a NIO selector and an event queue. The NIO selector is intended to monitor 
+whether the event registered on the socket occurs.
+
 
 ### Processor
 It is an abstraction for the application layer.
