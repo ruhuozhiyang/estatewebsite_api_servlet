@@ -353,16 +353,93 @@ public class NioEndPoint extends AbstractJsseEndpoint<NioChannel,SocketChannel> 
       }
       return result;
     }
+    /**
+     * The background thread that adds sockets to the Poller, checks the
+     * poller for triggered events and hands the associated socket off to an
+     * appropriate processor as events occur.
+     */
+    @Override
+    public void run() {
+      // Loop until destroy() is called
+      while (true) {
+        boolean hasEvents = false;
+        try {
+          if (!close) {
+            hasEvents = events();
+            if (wakeupCounter.getAndSet(-1) > 0) {
+              // If we are here, means we have other stuff to do
+              // Do a non blocking select
+              keyCount = selector.selectNow();
+            } else {
+              keyCount = selector.select(selectorTimeout);
+            }
+            wakeupCounter.set(0);
+          }
+          if (close) {
+            events();
+            timeout(0, false);
+            try {
+              selector.close();
+            } catch (IOException ioe) {
+              log.error(sm.getString("endpoint.nio.selectorCloseFail"), ioe);
+            }
+            break;
+          }
+          // Either we timed out or we woke up, process events first
+          if (keyCount == 0) {
+            hasEvents = (hasEvents | events());
+          }
+        } catch (Throwable x) {
+          ExceptionUtils.handleThrowable(x);
+          log.error(sm.getString("endpoint.nio.selectorLoopError"), x);
+          continue;
+        }
+        Iterator<SelectionKey> iterator =
+            keyCount > 0 ? selector.selectedKeys().iterator() : null;
+        // Walk through the collection of ready keys and dispatch
+        // any active event.
+        while (iterator != null && iterator.hasNext()) {
+          SelectionKey sk = iterator.next();
+          iterator.remove();
+          NioSocketWrapper socketWrapper = (NioSocketWrapper) sk.attachment();
+          // Attachment may be null if another thread has called
+          // cancelledKey()
+          if (socketWrapper != null) {
+            processKey(sk, socketWrapper);
+          }
+        }
+        // Process timeouts
+        timeout(keyCount,hasEvents);
+      }
+      getStopLatch().countDown();
+    }
+    
   }
 }
 ```
+Selector(选择器)是Java NIO中的组件，它能够检测一到多个NIO通道，并能知道通道是否为事件做好准备（例如写事件）。
+这样，一个单独的线程可以管理多个channel，从而管理多个网络连接。
+为了将Channel和Selector配合使用，必须将Channel注册到Selector上，通过SelectableChannel的register方法。
+与Selector一起使用时，Channel必须处于**非阻塞模式**下。这意味着FileChannel与Selector不能一起使用。
+
+SelectionKey 又是什么？
+就是Selector和Channel之间的桥梁。SelectableChannel的register方法所要用到的参数例如SelectionKey.OP_READ，
+所属一个"interest集合"，意思是在通过Selector监听Channel时对什么事件感兴趣。可以监听四种不同类型的事件:
+1.Connect; 2.Accept; 3.Read; 4.Write。通道触发了一个事件意思是该事件已经就绪。
+这四种事件使用SelectionKey的四个常量来表示，为SelectionKey.OP_CONNECT、SelectionKey.OP_ACCEPT、
+SelectionKey.OP_READ、SelectionKey.OP_WRITE。
+
+需要关注Poller对象中的两个很重要函数：events() 和 run()。
+
 分析一下Poller类的register方法：
 
 主要是利用 NioSocketWrapper 创建了一个事件PollerEvent，并且将事件添加进内部维护的一个线程安全的队列 events ，在这个
 过程中，势必是需要 PollerEvent 类对象的，但并没有直接就使用new 创建一个类对象，而是先试图去对象池里 pop 一个，如果没有
 再new 创建一个对象，如果有，则调用reset 方法，重设对象的属性。
 
-然后在方法events()中用完后，再放回对象池。可见上述代码，其中具体代码为: pe.reset(); eventCache.push(pe);
+然后在方法events()中用完后，再放回对象池。具体代码为: pe.reset(); eventCache.push(pe);
+分析一下Poller类中的events方法：
+
 
 
 #### 4.1.7 SocketProperties
