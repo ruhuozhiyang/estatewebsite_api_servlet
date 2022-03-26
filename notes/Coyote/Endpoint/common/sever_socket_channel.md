@@ -20,3 +20,4 @@ ServerSocketChannelTest 可以设置成非阻塞模式。在非阻塞模式下�
 ServerSocketChannel.socket().bind() 中绑定的是一个 endpoint: SocketAddress，The IP address and port 
 number to bind to 。
 
+一个端口号只能对应一个 ServerSocketChannel。

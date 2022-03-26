@@ -36,7 +36,14 @@ class  NioEndpoint {
   }
 }
 ```
-最后一步将 serverSock: ServerSocketChannel 配置成了阻塞模式，并注释写道，模拟 APR 行为。
+最后一步将 serverSock: ServerSocketChannel 配置成了阻塞模式，并注释写道，模拟 APR 行为。原因如下:
+> As far as I can tell this is NioEndpoint is using blocking ServerSocketChannel in order for 
+> it to block and wait for an incoming connection and only after it accepts it it processes this 
+> incoming socket channel in a non-blocking manner (see setSocketOptions method).
+>
+> The alternative to make ServerSocketChannel a non-blocking one will result as author points out 
+> into a busy read - that is a thread will be constantly polling for incoming connections as 
+> accept() in non-blocking mode may return null.
 
 ### function - startInternal
 ```java
