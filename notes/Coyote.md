@@ -20,6 +20,7 @@ will go on encapsulating the request object to the ServletRequest object, and ha
 
 ## I/O mode and Protocol supported in Coyote.
 下面图片中展示的是 Tomcat9 Connector 支持的 I/O 模型以及通信协议。（图片来源于网络）
+
 ![img.png](../pics/io_protocol.png)
 
 To support various I/O modes and application layer protocols, **one container in Tomcat is likely 
@@ -38,8 +39,7 @@ Endpoint 和 Processor 组成。
 It is an abstraction for the transport layer. Logically, the EndPoint component is responsible for 
 monitoring the communication port, receiving the socket data and sending it to the processor.
 
-抽象类 [AbstractEndpoint](./Coyote/Endpoint/abstract_endpoint.md) 中声明了一些 Endpoint 应该具有的基本属性
-/功能接口。针对不同协议或 I/O 模型的具体的 Endpoint 只需继承此抽象类，然后扩展实现特定的 Endpoint。
+抽象类 [AbstractEndpoint](./Coyote/Endpoint/abstract_endpoint.md) 
 
 ### 4.2 Processor
 It is an abstraction for the application layer.

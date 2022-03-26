@@ -1,3 +1,61 @@
+```java
+public class NioEndPoint extends AbstractJsseEndpoint<NioChannel,SocketChannel> {
+
+  private Poller poller = null;
+
+  /**
+   * Bytebuffer cache, each channel holds a set of buffers (two, except for SSL holds four)
+   */
+  private SynchronizedStack<NioChannel> nioChannels;
+  
+  /**
+   * Start the NIO endpoint, creating acceptor, poller threads.
+   */
+  @Override
+  public void startInternal() throws Exception {
+
+    if (!running) {
+      running = true;
+      
+      /**
+       * ...
+       * ...
+       */
+
+      /**
+       * bufferPool属性：可以创建的channels的数量。
+       * 如果socket的配置属性bufferPool不为0，那么就可以创建nioChannel的同步栈。
+       * 栈中的每一个成员为channel-nioChannel
+       */
+      if (socketProperties.getBufferPool() != 0) {
+        nioChannels = new SynchronizedStack<>(SynchronizedStack.DEFAULT_SIZE,
+            socketProperties.getBufferPool());
+      }
+      
+      // Create worker collection
+      if (getExecutor() == null) {
+        createExecutor();
+      }
+
+      initializeConnectionLatch();
+
+      // Start poller thread
+      poller = new Poller();
+      Thread pollerThread = new Thread(poller, getName() + "-Poller");
+      pollerThread.setPriority(threadPriority);
+      pollerThread.setDaemon(true);
+      pollerThread.start();
+
+      startAcceptorThread();
+    }
+  }
+  
+  @Override
+  protected boolean setSocketOptions(SocketChannel socket) { }
+  
+}
+```
+
 Poller 本质上就是一个Selector。内部维护一个线程安全的Queue，SynchronizedQueue<PollerEvent>。
 
 Poller 通过内部的 Selector 对象不断地向内核查询 Channel 的状态，一旦状态变成可读就生成任务类 SocketProcessor，
