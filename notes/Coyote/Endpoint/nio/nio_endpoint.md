@@ -7,6 +7,37 @@ Tomcat 的 NioEndpoint 实现了 I/O 多路复用模型。对于 Java 的多路�
 2. 感兴趣的事情发生了，比如可以读了，这时便创建一个新的线程从 Channel 中读数据。
 
 ## Members
+### function - initServerSocket
+```java
+class  NioEndpoint {
+  /**
+   * Initialize the endpoint.
+   */
+  @Override
+  public void bind() throws Exception {
+    initServerSocket();
+    // ...
+  }
+
+  // Separated out to make it easier for folks that extend NioEndpoint to
+  // implement custom [server]sockets
+  protected void initServerSocket() throws Exception {
+    if (getUseInheritedChannel()) {
+      
+    } else if (getUnixDomainSocketPath() != null) {
+
+    } else {
+      serverSock = ServerSocketChannel.open();
+      socketProperties.setProperties(serverSock.socket());
+      InetSocketAddress addr = new InetSocketAddress(getAddress(), getPortWithOffset());
+      serverSock.bind(addr, getAcceptCount());
+    }
+    serverSock.configureBlocking(true); //mimic APR behavior
+  }
+}
+```
+最后一步将 serverSock: ServerSocketChannel 配置成了阻塞模式，并注释写道，模拟 APR 行为。
+
 ### function - startInternal
 ```java
 class NioEndpoint {
@@ -61,6 +92,11 @@ class NioEndpoint {
 NioEndpoint 的 serverSocketAccept 方法内容见如下部分源代码。
 ```java
 public class NioEndPoint extends AbstractJsseEndpoint<NioChannel,SocketChannel> {
+  /**
+   * Server socket "pointer".
+   */
+  private volatile ServerSocketChannel serverSock = null;
+  
   @Override
   protected SocketChannel serverSocketAccept() throws Exception {
     SocketChannel result = serverSock.accept();
@@ -76,6 +112,7 @@ public class NioEndPoint extends AbstractJsseEndpoint<NioChannel,SocketChannel> 
 ```
 可见，NioEndpoint 返回的 socket 就是调用
 [java.nio.channels.ServerSocketChannel](../common/sever_socket_channel.md) 的 accept 方法得到的。
+请关注 NioEndpoint 中 initServerSocket() 对于 serverSock 的初始化。
 
 ### function - setSocketOptions
 The function handles the specified connection and the param is the SocketChannel.
