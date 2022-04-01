@@ -2,7 +2,15 @@
 The NioEndPoint class extends the abstract class AbstractEndPoint, and implements the abstract 
 functions like startInternal, setSocketOptions and so on.
 
-Tomcat 的 NioEndpoint 实现了 I/O 多路复用模型。对于 Java 的多路复用器的使用，无非是两步：
+Tomcat 的 NioEndpoint 实现了 I/O 多路复用模型。该类是 NIO tailored thread pool, 
+providing the following services:
+<ul>
+ <li>Socket acceptor thread</li>
+ <li>Socket poller thread</li>
+ <li>Worker threads pool</li>
+</ul>
+
+对于 Java 的多路复用器的使用，无非是两步：
 1. 创建一个 Selector，在它身上注册各种感兴趣的事件，然后调用 select 方法，等待感兴趣的事情发生。
 2. 感兴趣的事情发生了，比如可以读了，这时便创建一个新的线程从 Channel 中读数据。
 
@@ -37,17 +45,19 @@ class  NioEndpoint {
 }
 ```
 最后一步将 serverSock: ServerSocketChannel 配置成了阻塞模式，并注释写道，模拟 APR 行为。原因如下:
-> As far as I can tell this is NioEndpoint is using blocking ServerSocketChannel in order for 
-> it to block and wait for an incoming connection and only after it accepts it it processes this 
+> NioEndpoint is using blocking ServerSocketChannel in order for it to block and wait for an 
+> incoming connection and only after NioEndpoint accepting it, NioEndpoint processed the 
 > incoming socket channel in a non-blocking manner (see setSocketOptions method).
 >
-> The alternative to make ServerSocketChannel a non-blocking one will result as author points out 
-> into a busy read - that is a thread will be constantly polling for incoming connections as 
-> accept() in non-blocking mode may return null.
+> The alternative to make ServerSocketChannel a non-blocking one will result in a busy read - that 
+> is a thread will be constantly polling for incoming connections as accept() in non-blocking mode 
+> may return null.
 
 ### function - startInternal
 ```java
 class NioEndpoint {
+  private Poller poller = null;
+  
   /**
    * Bytebuffer cache, each channel holds a set of buffers (two, except for SSL holds four)
    */
@@ -78,7 +88,7 @@ class NioEndpoint {
 
       // Create worker collection
       if (getExecutor() == null) {
-        createExecutor();
+        createExecutor(); // 抽象类中已经实现了的方法。
       }
 
       initializeConnectionLatch();
@@ -90,11 +100,14 @@ class NioEndpoint {
       pollerThread.setDaemon(true);
       pollerThread.start();
 
-      startAcceptorThread();
+      startAcceptorThread(); // 抽象类中实现了的方法。
     }
   }
 }
 ```
+正如代码里写的，NioEndpoint 的启动方法 startInternal() 会创建 acceptor 线程和 poller 线程。
+[Poller](./Poller/poller.md) 是 NioEndpoint 的一个内部类。
+
 ### function - serverSocketAccept
 NioEndpoint 的 serverSocketAccept 方法内容见如下部分源代码。
 ```java
@@ -123,8 +136,11 @@ public class NioEndPoint extends AbstractJsseEndpoint<NioChannel,SocketChannel> 
 
 ### function - setSocketOptions
 The function handles the specified connection and the param is the SocketChannel.
-It firstly gets a NioChannel, through checking the pool of re-usable NioChannel Objects or creating
-a new NioChannel Object if the stack pops none nio-channel.
+Firstly, for getting a NioChannel, it checks the pool of re-usable NioChannel Objects. if the stack 
+pops none nio-channel, creates a new NioChannel Object.
+
+这个方法处理具体的 socket 连接， 将 SocketChannel 先后包装为 NioChannel、NioSocketWrapper，然后将 SocketChannel
+设置为 "非阻塞模式"，并注册进 Poller 中轮询。
 
 setSocketOptions 方法的部分源代码如下所示。
 ```java

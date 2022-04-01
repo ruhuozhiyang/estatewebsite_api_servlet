@@ -18,14 +18,14 @@
 
 举一个现实中的例子，如下图所示。
 
-![facade1](../pics/facade1.png)
+![facade1](../../pics/facade1.png)
 
 改为:
 
-![facade2](../pics/facade2.png)
+![facade2](../../pics/facade2.png)
 
 门面模式的结构如下图所示:
 
-![facade3](../pics/facade3.png)
+![facade3](../../pics/facade3.png)
 
 
