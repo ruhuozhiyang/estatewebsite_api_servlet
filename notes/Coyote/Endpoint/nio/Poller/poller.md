@@ -79,4 +79,4 @@ Poller类中的 [events](./func_events.md) 方法。
 Poller类的 [run](./func_run.md) 方法。
 
 
-层层封装: SocketChannel -> NioChannel -> NioSocketWrapper -> PollerEvent
+层层封装: ServerSocketChannel -> NioChannel -> NioSocketWrapper -> PollerEvent

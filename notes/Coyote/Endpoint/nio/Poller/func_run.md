@@ -1,3 +1,6 @@
+## Overview
+将套接字添加到轮询器的后台线程检查轮询器中的触发事件，并在事件发生时将关联的套接字交给适当的处理器。
+
 ```java
 public class Poller {
   /**
@@ -62,9 +65,3 @@ public class Poller {
   }
 }
 ```
-
-    /**
-     * The background thread that adds sockets to the Poller, checks the
-     * poller for triggered events and hands the associated socket off to an
-     * appropriate processor as events occur.
-     */
