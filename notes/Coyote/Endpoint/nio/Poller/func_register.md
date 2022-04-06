@@ -1,7 +1,8 @@
-主要是利用 NioSocketWrapper 创建了一个事件PollerEvent，并且将事件添加进内部维护的一个线程安全的队列 events ，在这个
-过程中，势必是需要 PollerEvent 类对象的，但并没有直接就使用new 创建一个类对象，而是先试图去对象池里 pop 一个，如果没有
-再new 创建一个对象，如果有，则调用reset 方法，重设对象的属性。
+## Overview
+向轮询器注册新创建的套接字。主要是依据 final NioSocketWrapper 创建事件对象 PollerEvent，并且将事件对象添加进
+内部维护的一个线程安全的队列 SynchronizedQueue<PollerEvent>。
 
+方法 register() 的相关源代码如下所示。
 ```java
 public class NioEndpoint {
   /**
@@ -10,6 +11,10 @@ public class NioEndpoint {
   private SynchronizedStack<PollerEvent> eventCache;
 
   public class Poller {
+
+    private Selector selector;
+    private final SynchronizedQueue<PollerEvent> events =
+        new SynchronizedQueue<>();
 
     private void addEvent(PollerEvent event) {
       events.offer(event);
@@ -39,3 +44,11 @@ public class NioEndpoint {
   }
 }
 ```
+## Analysis of Process
+首先对原始 socket 注册 open_read 事件，然后创建 OP_REGISTER 类型的 poller 事件，交由方法 addEvent() 处理。
+
+在创建 PollerEvent 对象时，并没有直接就使用new 创建一个类对象，而是先试图去对象池里 pop 一个，如果没有
+再 new 创建一个对象，如果有，则调用reset 方法，重设对象的属性。
+
+addEvent() 私有方法中，将 PollerEvent 对象添加进线程安全队列，并检测原子类 wakeupCounter 的值，如果加 1 后等于 0 
+那么就通过 wakeup() 方法唤醒 Java 的多路复用器 Selector。

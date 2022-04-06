@@ -70,7 +70,8 @@ interestOps [256]
 ### functions - register() 、events() 和 run()。
 启动阶段，NioEndpoint 使用 Poller 对象主要完成以下工作：
 1. startInternal()中，创建后台 Poller 线程，并启动 Poller 线程工作（执行 run 方法）；
-2. setSocketOptions()中，将接收到的 SocketChannel 封装成 NioSocketWrapper 并注册进 Poller 中；
+2. setSocketOptions()中，将接收到的 SocketChannel 封装成 NioSocketWrapper 并调用 Poller 的方法 register 
+将其注册进 Poller 中；
 
 Poller类中的 [register](./func_register.md) 方法。
 

@@ -1,6 +1,6 @@
 ## Overview
-将套接字添加到轮询器的后台线程检查轮询器中的触发事件，并在事件发生时将关联的套接字交给适当的处理器。
-
+将套接字添加到轮询器的后台线程检查轮询器中的触发事件，并在事件发生时将关联的套接字交给适当的处理器。该方法的部分源代码
+如下图所示。
 ```java
 public class Poller {
   /**
@@ -65,3 +65,9 @@ public class Poller {
   }
 }
 ```
+
+## Functions Used
+selector.selectNow() 方法来获取是否有注册在原始 socket 上的事件发生。
+
+selector.select(timeout) 方法，这个方法是阻塞方法，调用之后 poller 线程会一直处于等待状态，一直等待到有事件发生
+或者超时。
