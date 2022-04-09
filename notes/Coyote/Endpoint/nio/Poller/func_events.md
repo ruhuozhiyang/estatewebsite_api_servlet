@@ -80,12 +80,50 @@ if (interestOps == OP_REGISTER) {
 }
 ```
 如果 PollerEvent 的 interestOps 为 OP_REGISTER，那么就通过 SocketChannel.register() 将 SocketChannel 注册
-进 Selector，且监测的事件为 SelectionKey.OP_READ。
+进 Selector，且监测的事件为 SelectionKey.OP_READ，并添加附件 socketWrapper，关于 SocketChannel.register() 
+的用法见 [register](../../common/sever_socket_channel.md)。
 
-用完 PollerEvent对象后，再将其放回对象池，对应代码如下。
+那为什么会出现以下除了 interestOps == OP_REGISTER 的另外两种 if 可能情况呢？
+```markdown
+if (sc == null) {
+    log.warn(sm.getString("endpoint.nio.nullSocketChannel"));
+    socketWrapper.close();
+} else if (interestOps == OP_REGISTER) {
+
+} else {
+    final SelectionKey key = sc.keyFor(getSelector());
+    if (key == null) {
+      // The key was cancelled (e.g. due to socket closure)
+      // and removed from the selector while it was being
+      // processed. Count down the connections at this point
+      // since it won't have been counted down when the socket
+      // closed.
+      socketWrapper.close();
+    } else {
+      final NioSocketWrapper attachment = (NioSocketWrapper) key.attachment();
+      if (attachment != null) {
+        // We are registering the key to start with, reset the fairness counter.
+        try {
+          int ops = key.interestOps() | interestOps;
+          attachment.interestOps(ops);
+          key.interestOps(ops);
+        } catch (CancelledKeyException ckx) {
+          cancelledKey(key, socketWrapper);
+        }
+      } else {
+        cancelledKey(key, socketWrapper);
+      }
+    }
+}
+```
+
+最后在用完 PollerEvent 后，再将其放回对象池，对应代码如下。
 ```markdown
 if (running && eventCache != null) {
     pe.reset();
     eventCache.push(pe);
 }
 ```
+
+其实，events() 方法的主体就是 for 循环遍历队列 SynchronizedQueue<PollerEvent>，处理其中 PollerEvent 对象，将
+SocketChannel 注册进 Selector，处理完后，队列为空。
