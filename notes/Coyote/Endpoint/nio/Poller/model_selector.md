@@ -1,4 +1,4 @@
-## Overview
+## 1. Overview
 Selector 是 Java 世界中的**多路复用**。
 
 选择器(Selector)是 SelectableChannel 对象的多路复用器。Selector 可以同时监控多个 SelectableChannel 的 IO 
@@ -7,18 +7,18 @@ Selector 是 Java 世界中的**多路复用**。
 select 本身是阻塞的，当它管理的某个通道就绪时，就会返回就绪的通道供给程序读写操作。对于应用程序来说，只需要单个线程
 便可以维护多个通道。这将带来很大的伸缩性。
 
-## Functions
-### select() 
+## 2. Functions
+### 2.1 select() 
 调用此方法，获取是否有注册在原始 socket 上的事件发生。会将上次 select 之后的准备好的 channel 对应的 SelectionKey 
 复制到 selected set 中。如果没有任何通道准备好，这个方法会***阻塞***，直到至少有一个通道准备好。
 
-### select(long timeout)
+### 2.2 select(long timeout)
 如果没有通道准备好，此方法会阻塞等待一会，等待时间为 timeout。
 
-### selectNow()
+### 2.3 selectNow()
 功能和 select 一样，区别在于如果没有准备好的通道，那么此方法会立即返回 0。
 
-### wakeup()
+### 2.4 wakeup()
 这个方法是用来唤醒等待在 select() 和 select(timeout) 上的线程的。如果 wakeup() 先被调用，此时没有线程在 select 
 上阻塞，那么之后的一个 select() 或 select(timeout) 会立即返回，而不会阻塞，当然，它只会作用一次。
 
@@ -33,17 +33,17 @@ poll 方法有数据可读就立即返回。证明这一点很简单，strace �
 
 ![selector_wakeup.png](../../../../../pics/selector_wakeup.png)
 
-### key()
-已注册的键
+### 2.5 keys()
+已注册的键，返回 Set<SelectionKey>。
 
-### selectedKeys()
-已选择(就绪)的键 SelectionKey
+### 2.6 selectedKeys()
+已选择(就绪)的键，返回 Set<SelectionKey>。
 
-#### SelectionKey
+#### 2.6.1 SelectionKey
 选择键 SelectionKey 封装了特定的通道与特定的选择器的注册关系。
 一个Selector中可以注册多通道，不同通道在选择器中被封装成为 SelectionKey 对象。
 
-#### SelectionKey.attachment()
+#### 2.6.2 SelectionKey.attachment()
 可以将一个或者多个附加对象绑定到SelectionKey上，以便容易的识别给定的通道。通常有两种方式:
 - 在注册的时候直接绑定:
   SelectionKey key=channel.register(selector,SelectionKey.OP_READ,theObject); 
@@ -55,6 +55,3 @@ poll 方法有数据可读就立即返回。证明这一点很简单，strace �
 如果要取消该对象，则可以通过该种方式: selectionKey.attach(null);
 
 需要注意的是如果附加的对象不再使用，一定要人为清除，因为垃圾回收器不会回收该对象，若不清除的话会成内存泄漏。
-
-### cancel()
-已取消的键

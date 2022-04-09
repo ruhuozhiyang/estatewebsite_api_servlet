@@ -63,7 +63,26 @@ public class Poller {
 
 ## Analysis
 如果队列为空，就会返回 false；如果队列不为空，就会遍历队列，进行操作，并且返回 true。
-用完 PollerEvent对象后，再将其放回对象池，对应代码如下所示。
+
+在创建 PollerEvent 时候已设置其 interestOps 属性为 OP_REGISTER，表明 PollerEvent 的下一兴趣事件为注册事件，
+也就是注册进 Selector。
+
+遍历队列时，先依次获取 PollerEvent 对应的 NioSocketWrapper， SocketChannel 和 interestOps。
+
+我们可以看见 if 判断代码如下。
+```markdown
+if (interestOps == OP_REGISTER) {
+    try {
+      sc.register(getSelector(), SelectionKey.OP_READ, socketWrapper);
+    } catch (Exception x) {
+      log.error(sm.getString("endpoint.nio.registerFail"), x);
+    }
+}
+```
+如果 PollerEvent 的 interestOps 为 OP_REGISTER，那么就通过 SocketChannel.register() 将 SocketChannel 注册
+进 Selector，且监测的事件为 SelectionKey.OP_READ。
+
+用完 PollerEvent对象后，再将其放回对象池，对应代码如下。
 ```markdown
 if (running && eventCache != null) {
     pe.reset();
