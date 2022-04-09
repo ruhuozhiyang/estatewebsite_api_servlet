@@ -1,5 +1,5 @@
-然后，方法events()中用完 PollerEvent对象后，再将其放回对象池。
-
+## Overview
+该方法是用来处理队列 SynchronizedQueue<PollerEvent> 中的事件对象 PollerEvent 的，该方法的部分源码如下所示。
 ```java
 public class Poller {
   /**
@@ -58,5 +58,15 @@ public class Poller {
     }
     return result;
   }
+}
+```
+
+## Analysis
+如果队列为空，就会返回 false；如果队列不为空，就会遍历队列，进行操作，并且返回 true。
+用完 PollerEvent对象后，再将其放回对象池，对应代码如下所示。
+```markdown
+if (running && eventCache != null) {
+    pe.reset();
+    eventCache.push(pe);
 }
 ```
