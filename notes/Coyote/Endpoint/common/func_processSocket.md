@@ -74,3 +74,31 @@ SocketProcessor 是继承自抽象类 SocketProcessorBase，该抽象类实现�
 这里其实是使用了模版设计模式，将**公共的操作流程**封装在抽象类 SocketProcessorBase 的方法 run() 中，对于抽象方法
 doRun()，不同的实现类有着不同的实现，不管是什么样的 SocketProcessorBase 实现类，只需统一通过调用 
 SocketProcessorBase.run() 就可以实现"因地制宜"。
+
+此处的 Executor 是既可通过方法 createExecutor() 创建，也可通过 setExecutor() 设置为外置 Executor。
+```java
+abstract class AbstractEndpoint {
+  /**
+   * Are we using an internal executor
+   */
+  protected volatile boolean internalExecutor = true;
+
+  /**
+   * External Executor based thread pool.
+   */
+  private Executor executor = null;
+  public void setExecutor(Executor executor) {
+    this.executor = executor;
+    this.internalExecutor = (executor == null);
+  }
+  public Executor getExecutor() { return executor; }
+  
+  public void createExecutor() {
+    internalExecutor = true;
+    TaskQueue taskqueue = new TaskQueue();
+    TaskThreadFactory tf = new TaskThreadFactory(getName() + "-exec-", daemon, getThreadPriority());
+    executor = new ThreadPoolExecutor(getMinSpareThreads(), getMaxThreads(), 60, TimeUnit.SECONDS,taskqueue, tf);
+    taskqueue.setParent( (ThreadPoolExecutor) executor);
+  }
+}
+```

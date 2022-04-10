@@ -1,4 +1,4 @@
-## 1.Overview
+## 1. Overview
 声明了一些 Endpoint 应该具有的基本属性/功能接口。针对不同协议或 I/O 模型的具体的 Endpoint 只需继承此抽象类，
 然后扩展实现特定的 Endpoint。
 
@@ -45,13 +45,15 @@ public abstract class AbstractEndpoint {
   }
 }
 ```
-## 2.Members
-### 2.1[Acceptor](./common/acceptor.md)
+## 2. Members
+### 2.1 [Acceptor](./common/acceptor.md)
 成员 acceptor 和 AbstractEndPoint 是双向关联的。   
 AbstractEndPoint 的方法 **startAcceptorThread()** 创建和启动 acceptor 线程；   
 实现了 Runnable 的 acceptor 线程的 run 方法中会调用 AbstractEndpoint 中方法，例如: setSocketOptions()等。
 
-## 3.Process analysis
+### 2.2 Function - [processSocket](./common/func_processSocket.md)
+
+## 3. Process analysis
 > 1.start过程
 > 
 > 抽象类 AbstractProtocol 继承实现接口 ProtocolHandler 的方法 start() 中会调用抽象类 AbstractEndpoint 的
@@ -64,7 +66,7 @@ AbstractEndPoint 的方法 **startAcceptorThread()** 创建和启动 acceptor �
 > startAcceptorThread，而抽象类中的方法 startAcceptorThread 又会创建 Acceptor 线程并启动，后台运行。Acceptor
 > 的方法 run() 中的具体内容可见 [acceptor.run](./common/acceptor.md)
 
-## 4.Implementations
-### 4.1[NioEndpoint](./nio/nio_endpoint.md)
+## 4. Implementations
+### 4.1 [NioEndpoint](./nio/nio_endpoint.md)
 
-### 4.2[Nio2Endpoint]()
+### 4.2 [Nio2Endpoint]()

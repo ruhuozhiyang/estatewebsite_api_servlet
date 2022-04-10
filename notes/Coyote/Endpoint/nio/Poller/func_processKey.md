@@ -66,4 +66,4 @@ class Poller {
 如果 sendFile != null，那么就处理它，否则，调用方法 unreg() unregister 掉 SocketChannel 的 interest set，也
 就是不再监测 SocketChannel 就绪的事件，因为接着就要处理 SocketChannel 中的数据了。
 
-我们主要看处理读 或 处理写的步骤，见 [processSocket](./func_processSocket.md)。
+我们主要看处理读 或 处理写的步骤，见 [processSocket](../../common/func_processSocket.md)。
