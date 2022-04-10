@@ -121,3 +121,5 @@ while (iterator != null && iterator.hasNext()) {
 }
 ```
 如果 keyCount > 0，说明有事件准备好了，那么就通过 selector.selectedKeys() 获取所有的已就绪的键，然后遍历处理。
+对于每一个 SelectionKey，将获取其附件 NioSocketWrapper，如果不为空，就调用 processKey(sk, socketWrapper) 
+进行处理，处理过程见 [processKey](./func_processKey.md)。
