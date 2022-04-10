@@ -68,9 +68,9 @@ if (dispatch && executor != null) {
 首先获取到执行器 Executor，如果确认处理需要在新的容器线程上执行，且获取到的执行器 executor 不为空，那么就交给 executor
 的 execute 处理，否则就直接启动 SocketProcessor 线程。
 
-SocketProcessor 是继承自抽象类 SocketProcessorBase<S>，该抽象类实现了 Runnable，重写了 run() 方法，在 run 方法
+SocketProcessor 是继承自抽象类 SocketProcessorBase，该抽象类实现了 Runnable，重写了 run() 方法，在 run 方法
 中调用了抽象方法 doRun()，然后 SocketProcessor 又实现了该抽象方法 doRun()。
 
-这里其实是使用了模版设计模式，将**公共的操作流程**封装在抽象类 SocketProcessorBase<S> 的方法 run() 中，对于抽象方法
+这里其实是使用了模版设计模式，将**公共的操作流程**封装在抽象类 SocketProcessorBase 的方法 run() 中，对于抽象方法
 doRun()，不同的实现类有着不同的实现，不管是什么样的 SocketProcessorBase 实现类，只需统一通过调用 
 SocketProcessorBase.run() 就可以实现"因地制宜"。
