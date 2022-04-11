@@ -54,6 +54,8 @@ abstract class AbstractEndpoint {
 ```
 
 ## 2. Analysis
+- 参数 SocketWrapperBase：要处理的 SocketWrapper；
+- 参数 SocketEvent：要处理的 Socket 事件；
 - 参数 dispatch 意为：处理是否应该在新的容器线程上执行；
 
 关键代码如下。
@@ -75,7 +77,7 @@ SocketProcessor 是继承自抽象类 SocketProcessorBase，该抽象类实现�
 doRun()，不同的实现类有着不同的实现，不管是什么样的 SocketProcessorBase 实现类，只需统一通过调用 
 SocketProcessorBase.run() 就可以实现"因地制宜"。
 
-此处的 Executor 是既可通过方法 createExecutor() 创建，也可通过 setExecutor() 设置为外置 Executor。
+此处的 Executor 既可通过方法 createExecutor() 创建，也可通过 setExecutor() 设置为外置 Executor，代码如下所示。
 ```java
 abstract class AbstractEndpoint {
   /**
@@ -102,3 +104,4 @@ abstract class AbstractEndpoint {
   }
 }
 ```
+
