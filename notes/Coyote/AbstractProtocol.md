@@ -2,6 +2,9 @@
 ProtocolHandler 包含了 Endpoint 和 Processor 两个部分。整体的结构如下图所示。
 ![ProtocolHandler](../../pics/ProtocolHandler.jpeg)
 
+具体例子如下：
+![HttpHandler](../../pics/tomcat_http_handle.png)
+
 ## 2.Members
 ### 2.1Endpoint
 It is an abstraction for the transport layer. Logically, the EndPoint component is responsible for
